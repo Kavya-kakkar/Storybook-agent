@@ -138,11 +138,12 @@ def check_backend_health():
 with st.sidebar:
     st.markdown("### ⚙️ Engine Settings")
     
-    env_key_present = bool(os.getenv("OPENAI_API_KEY", "").strip())
-    if env_key_present:
-        st.info("🔑 OpenAI key detected in .env. Live DALL-E 3 and GPT-4o will be engaged when valid, with automatic fallback to the Smart Visual Engine.", icon="ℹ️")
+    active_env_key = (os.getenv("OPEN_ROUTER_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")).strip()
+    if active_env_key:
+        provider_name = "OpenRouter" if active_env_key.startswith("sk-or-") else "OpenAI"
+        st.success(f"🔑 {provider_name} API key active from .env", icon="✅")
     else:
-        st.caption("No OpenAI key in .env. The Smart Story & Visual Engine will create full illustrated storybooks.")
+        st.caption("No API key in .env. The Smart Story & Visual Engine will create full illustrated storybooks.")
     
     user_api_key = st.text_input(
         "Override API Key (Optional)",
@@ -222,7 +223,8 @@ if generate_btn:
             progress_bar.progress(0.15)
             
             clean_age = target_age.split(" ")[0]
-            api_key_to_use = user_api_key.strip() if user_api_key.strip() else os.getenv("OPENAI_API_KEY", "").strip() or None
+            env_key = (os.getenv("OPEN_ROUTER_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")).strip()
+            api_key_to_use = user_api_key.strip() if user_api_key.strip() else (env_key or None)
 
             storybook = generate_story(
                 prompt=prompt_input,

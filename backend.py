@@ -60,7 +60,7 @@ def root_redirect():
 
 @app.get("/health")
 def health_check():
-    has_env_key = bool(os.getenv("OPENAI_API_KEY", "").strip())
+    has_env_key = bool((os.getenv("OPEN_ROUTER_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")).strip())
     return {
         "status": "online",
         "service": "MagicTale AI Backend",

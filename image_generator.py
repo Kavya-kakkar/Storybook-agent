@@ -326,10 +326,10 @@ def generate_illustration(
     api_key: Optional[str] = None,
 ) -> Dict:
     full_prompt = build_scene_prompt(character, scene_description)
-    active_key = api_key or os.getenv("OPENAI_API_KEY", "").strip()
+    active_key = (api_key or os.getenv("OPEN_ROUTER_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")).strip()
     openai_error = None
 
-    if active_key:
+    if active_key and not active_key.startswith("sk-or-"):
         try:
             client = OpenAI(api_key=active_key, timeout=45.0)
             res = client.images.generate(
@@ -354,7 +354,7 @@ def generate_illustration(
         except Exception as e:
             openai_error = str(e)
     else:
-        openai_error = "No API key configured"
+        openai_error = "OpenRouter mode active (uses Visual Engine for illustration)"
 
     if _try_pollinations(scene_description, character, page_number, story_id, output_path):
         return {

@@ -1,3 +1,4 @@
+import os
 import json
 import re
 from pydantic import BaseModel
@@ -148,10 +149,13 @@ def extract_fallback_character(prompt: str, target_age: str = "4-8 years") -> Ch
     )
 
 def generate_character_profile(prompt: str, target_age: str = "4-8 years", api_key: str | None = None) -> CharacterProfile:
-    if not api_key:
+    active_key = (api_key or os.getenv("OPEN_ROUTER_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")).strip()
+    if not active_key:
         return extract_fallback_character(prompt, target_age)
     try:
-        client = OpenAI(api_key=api_key, timeout=20.0)
+        base_url = "https://openrouter.ai/api/v1" if active_key.startswith("sk-or-") else None
+        model_name = "openai/gpt-4o-mini" if active_key.startswith("sk-or-") else "gpt-4o-mini"
+        client = OpenAI(api_key=active_key, base_url=base_url, timeout=25.0)
         system_instruction = (
             "You are a master character designer for children's illustrated storybooks. "
             "Given a story prompt, design ONE single memorable main character. "
@@ -159,7 +163,7 @@ def generate_character_profile(prompt: str, target_age: str = "4-8 years", api_k
             "Return JSON matching the schema precisely: name, species_or_type, age, face, hairstyle, skin_tone, clothing, colors, distinctive_features, art_style."
         )
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model_name,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system_instruction},

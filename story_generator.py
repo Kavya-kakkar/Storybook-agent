@@ -131,14 +131,18 @@ def create_fallback_story(prompt: str, character: CharacterProfile, target_age: 
     )
 
 def generate_story(prompt: str, target_age: str = "4-8 years", api_key: Optional[str] = None) -> Storybook:
-    active_key = api_key or os.getenv("OPENAI_API_KEY", "").strip()
+    active_key = (api_key or os.getenv("OPEN_ROUTER_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")).strip()
     character = generate_character_profile(prompt, target_age, active_key if active_key else None)
     
     if not active_key:
-        return create_fallback_story(prompt, character, target_age, "No OpenAI API key provided.")
+        return create_fallback_story(prompt, character, target_age, "No API key provided.")
 
     try:
-        client = OpenAI(api_key=active_key, timeout=35.0)
+        is_openrouter = active_key.startswith("sk-or-")
+        base_url = "https://openrouter.ai/api/v1" if is_openrouter else None
+        model_name = "openai/gpt-4o-mini" if is_openrouter else "gpt-4o-mini"
+        mode_label = "Live OpenRouter API (openai/gpt-4o-mini)" if is_openrouter else "Live OpenAI API (gpt-4o-mini)"
+        client = OpenAI(api_key=active_key, base_url=base_url, timeout=35.0)
         system_prompt = (
             "You are an acclaimed children's author. Write an illustrated five-page children's storybook. "
             "Constraints:\n"
@@ -152,7 +156,7 @@ def generate_story(prompt: str, target_age: str = "4-8 years", api_key: Optional
         user_prompt = f"Story concept: {prompt}\nTarget age group: {target_age}\nCharacter anchor: {char_desc}"
 
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model_name,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -187,7 +191,7 @@ def generate_story(prompt: str, target_age: str = "4-8 years", api_key: Optional
             character=character,
             pages=parsed_pages,
             is_demo_mode=False,
-            mode_label="Live OpenAI API (gpt-4o-mini)"
+            mode_label=mode_label
         )
     except Exception as e:
-        return create_fallback_story(prompt, character, target_age, f"OpenAI error: {str(e)}")
+        return create_fallback_story(prompt, character, target_age, f"API error: {str(e)}")
